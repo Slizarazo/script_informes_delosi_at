@@ -1,10 +1,26 @@
 import re
 from docx import Document
 from docx2pdf import convert
-import os
+import os, sys
 import matplotlib.pyplot as plt
 from docx.shared import Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+# ╔════════════════════════════════════════════════════════════════════╗
+# ║                            ⚠️  ATENCIÓN                            ║
+# ╠════════════════════════════════════════════════════════════════════╣
+# ║                                                                    ║
+# ║   ESTE ARCHIVO ES CRÍTICO PARA EL FUNCIONAMIENTO DEL SISTEMA.     ║
+# ║   NO MODIFICAR NI ELIMINAR SU CONTENIDO SIN AUTORIZACIÓN.         ║
+# ║                                                                    ║
+# ║   Cualquier cambio podría generar errores graves en la aplicación.║
+# ║                                                                    ║
+# ╚════════════════════════════════════════════════════════════════════╝
+
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'config')))
+
+from config.models import Dim_evaluated
 
 def generar_grafico(nombre_archivo):
     # Ejemplo de gráfica
@@ -16,7 +32,7 @@ def generar_grafico(nombre_archivo):
     plt.savefig(nombre_archivo)
     plt.close()
 
-def reemplazar_llaves_y_exportar_pdf(path_docx, reemplazos, graficos={}, output_pdf_path=None):
+def reemplazar_llaves_y_exportar_pdf(path_docx, reemplazos, output_doc, marca, graficos={}, output_pdf_path=None):
     doc = Document(path_docx)
     
     def reemplazar_o_insertar(parrafo, reemplazos, graficos):
@@ -50,29 +66,39 @@ def reemplazar_llaves_y_exportar_pdf(path_docx, reemplazos, graficos={}, output_
     temp_docx = "documento_modificado.docx"
     doc.save(temp_docx)
 
+    # Crear carpeta si no existe
+    ruta_base = "pdfs"  # Sin "/" inicial para que sea relativa al proyecto
+    ruta_completa = os.path.join(ruta_base, marca)
+
+    os.makedirs(ruta_completa, exist_ok=True)
+
     if output_pdf_path is None:
-        output_pdf_path = os.path.splitext(path_docx)[0] + "_modificado.pdf"
+        output_pdf_path = output_doc + ".pdf"
+
+    output_pdf_path = os.path.join('pdfs/'+marca, output_pdf_path)
     convert(temp_docx, output_pdf_path)
     os.remove(temp_docx)
 
     return output_pdf_path
 
+data = Dim_evaluated.get_all()
 
-# Generar imagen de gráfico
-ruta_grafico = "graficas/grf_juan_perez.png"
-generar_grafico(ruta_grafico)
+for reg in data:
 
-# Diccionarios
-reemplazos = {
-    "Nombre": "Juan Perez",
-    "Fecha_assesment": "27 de abril del 2025",
-    "Marca": "MARCA ejemplo",
-    "Calif_total": "87"
-}
+    # Generar imagen de gráfico
+    ruta_grafico = "graficas/" + str(reg['nombre']) + ".png"
+    generar_grafico(ruta_grafico)
+    
+    reemplazos = {
+        "Nombre": reg['nombre'],
+        "Fecha_assesment": "por definir",
+        "Unidad_negocio": reg['unidad_negocio'],
+        "Marca": reg['marca']
+    }
 
-graficos = {
-    "Grafica": ruta_grafico
-}
+    graficos = {
+        "Grafica": ruta_grafico
+    }
 
-ruta_pdf = reemplazar_llaves_y_exportar_pdf("inf_delosi.docx", reemplazos, graficos)
-print(f"PDF generado: {ruta_pdf}")
+    ruta_pdf = reemplazar_llaves_y_exportar_pdf("inf_delosi.docx", reemplazos, str(reg['nombre']), str(reg['marca']), graficos)
+    print(f"PDF generado: {ruta_pdf}")
