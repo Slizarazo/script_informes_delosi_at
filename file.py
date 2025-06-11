@@ -5,6 +5,7 @@ import os, sys
 import matplotlib.pyplot as plt
 from docx.shared import Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from graficos import *
 
 # ╔════════════════════════════════════════════════════════════════════╗
 # ║                            ⚠️  ATENCIÓN                            ║
@@ -17,20 +18,9 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 # ║                                                                    ║
 # ╚════════════════════════════════════════════════════════════════════╝
 
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'config')))
 
 from config.models import Dim_evaluated
-
-def generar_grafico(nombre_archivo):
-    # Ejemplo de gráfica
-    plt.figure()
-    plt.plot([1, 2, 3, 4], [10, 20, 15, 25])
-    plt.title("Ventas por trimestre")
-    plt.xlabel("Trimestre")
-    plt.ylabel("Ventas")
-    plt.savefig(nombre_archivo)
-    plt.close()
 
 def reemplazar_llaves_y_exportar_pdf(path_docx, reemplazos, output_doc, marca, graficos={}, output_pdf_path=None):
     doc = Document(path_docx)
@@ -51,7 +41,7 @@ def reemplazar_llaves_y_exportar_pdf(path_docx, reemplazos, output_doc, marca, g
                     if llave in run.text:
                         run.text = run.text.replace(llave, '')
                 run = parrafo.add_run()
-                run.add_picture(ruta_img, width=Inches(4))
+                run.add_picture(ruta_img, width=Inches(8), height=Inches(1.5))
                 parrafo.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     for parrafo in doc.paragraphs:
@@ -85,19 +75,35 @@ data = Dim_evaluated.get_all()
 
 for reg in data:
 
+    marca = str(reg['marca'].replace(' ', '_'))
+
+    # Ruta base
+    base_path = "graficas/calificacion_global"
+    # Nombre de la subcarpeta según el registro
+    nombre_carpeta = marca
+    # Ruta completa
+    carpeta_destino = os.path.join(base_path, nombre_carpeta)
+
+    # Validar existencia y crear si no existe
+    if not os.path.exists(carpeta_destino):
+        os.makedirs(carpeta_destino)
+        print(f"📁 Carpeta creada: {carpeta_destino}")
+    else:
+        print(f"📂 Carpeta ya existe: {carpeta_destino}")
+        
     # Generar imagen de gráfico
-    ruta_grafico = "graficas/" + str(reg['nombre']) + ".png"
-    generar_grafico(ruta_grafico)
+    calificacion_global = "graficas/calificacion_global/" + marca + "/" + str(reg['nombre_display']) + ".png"
+    mostrar_tarjetas(reg['caso_practico'], reg['conocimiento'], reg['nombre_display'], marca)
     
     reemplazos = {
-        "Nombre": reg['nombre'],
-        "Fecha_assesment": "por definir",
+        "Nombre": reg['nombre_display'],
+        "Fecha_assesment": "28 de Octubre de 2024 a 27 de Enero de 2025",
         "Unidad_negocio": reg['unidad_negocio'],
         "Marca": reg['marca']
     }
 
     graficos = {
-        "Grafica": ruta_grafico
+        "Calificacion_global": calificacion_global
     }
 
     ruta_pdf = reemplazar_llaves_y_exportar_pdf("inf_delosi.docx", reemplazos, str(reg['nombre']), str(reg['marca']), graficos)
